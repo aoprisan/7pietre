@@ -1,0 +1,21 @@
+{
+  "name": "sette-pietre",
+  "version": "0.1.0",
+  "private": true,
+  "description": "7 Pietre — mobile-first PWA prototype of the courtyard game (throw -> run -> rebuild). TypeScript, zero runtime dependencies.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --watch --serve",
+    "icons": "node tools/gen-icons.mjs dist/icons",
+    "test": "npm run test:sim && npm run test:render",
+    "test:sim": "esbuild tools/smoke-entry.ts --bundle --platform=node --format=esm --outfile=dist/smoke.mjs && node dist/smoke.mjs",
+    "test:render": "esbuild tools/render-smoke-entry.ts --bundle --platform=node --format=esm --outfile=dist/render-smoke.mjs && node dist/render-smoke.mjs",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3"
+  }
+}
