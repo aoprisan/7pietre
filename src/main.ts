@@ -35,7 +35,7 @@ let state: GameState = createMatch(0x1234);
 let controllers: Controller[] = [];
 let renderer = new Renderer(canvas, paletteForSkin('dusk-courtyard'), 'dusk-courtyard', HUMAN_ID);
 
-input.attach(canvas, (cx, cy) => renderer.toInternal(cx, cy));
+input.attach(canvas, (cx, cy) => renderer.toView(cx, cy));
 
 // --- UI ---
 const hud = new Hud();
@@ -79,6 +79,7 @@ function startMatch(c: MenuChoice): void {
   controllers = buildControllers(state, c);
   renderer.setPalette(paletteForSkin(c.neighborhood.skin), c.neighborhood.skin);
   renderer.resize();
+  renderer.snapCamera();
   running = true;
   acc = 0;
   prevSnap = null;
@@ -197,6 +198,7 @@ function handleTransitions(dt: number): void {
         startNextRound(state);
         prevSnap = null;
         acc = 0;
+        renderer.snapCamera();
         showRoundIntro();
       }
     }

@@ -3,13 +3,18 @@
 
 export const TICK = 1 / 60; // fixed simulation timestep (seconds)
 
-export const FIELD = { w: 540, h: 960 };
+// FIELD is the whole world (bigger than one screen); VIEW is the window the camera
+// shows on screen at a fixed zoom. FIELD.w == VIEW.w means the camera pans vertically
+// only. VIEW is consumed ONLY by the renderer — the sim never reads it.
+export const FIELD = { w: 540, h: 1500 };
+export const VIEW = { w: 540, h: 960 };
 
 /** Stack base (the "castle"). Upper third of the court. */
-export const BASE = { x: 270, y: 250 };
+export const BASE = { x: 270, y: 360 };
 
-/** Attackers throw from BEHIND this line (larger y = closer to camera/bottom). */
-export const THROW_LINE_Y = 700;
+/** Attackers throw from BEHIND this line (larger y = closer to camera/bottom).
+ * Kept 450 below BASE so the throw arc (tuned for that distance) needs no re-tuning. */
+export const THROW_LINE_Y = 810;
 
 export const STONE_COUNT = 7;
 export const STACK_RADIUS = 46; // horizontal hit radius of the standing stack
@@ -80,5 +85,12 @@ export const NEIGHBORHOODS: Neighborhood[] = [
     subtitle: 'Bloc · 1994 · ora 7 seara',
     desc: 'Asfalt crăpat, covor pe bătător, un Dacia parcat. Generația cu cheia la gât.',
     skin: 'dusk-courtyard',
+  },
+  {
+    id: 'cartierul-nou',
+    name: 'Cartierul Nou',
+    subtitle: 'Bloc · vară · amiază',
+    desc: 'Soare în cap, castani verzi, asfalt încins. Mingea sare mai tare la amiază.',
+    skin: 'noon-courtyard',
   },
 ];

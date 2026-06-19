@@ -2,7 +2,7 @@
 // current control CONTEXT (set each frame by the app from game state). Implements
 // HumanInputSource so the HumanController stays DOM-free. Mouse mirrors touch via
 // the Pointer Events API for desktop dev.
-import { FIELD } from '../sim/config';
+import { VIEW } from '../sim/config';
 import type { Vec2 } from '../sim/vec';
 import type { HumanInputSource } from '../controllers/types';
 import { ActionButton } from './actionButton';
@@ -14,15 +14,15 @@ export type ControlContext = 'throw' | 'move' | 'idle';
 export class InputManager implements HumanInputSource {
   readonly joystick = new Joystick(72);
   readonly drag = new DragAim(150);
-  readonly action = new ActionButton({ x: FIELD.w - 84, y: FIELD.h - 118 }, 58);
+  readonly action = new ActionButton({ x: VIEW.w - 84, y: VIEW.h - 118 }, 58);
 
   private context: ControlContext = 'idle';
   private buttonPointer = -1;
-  /** maps client (CSS px) coords -> internal canvas coords; set by main. */
-  private mapToInternal: (cx: number, cy: number) => Vec2 = (cx, cy) => ({ x: cx, y: cy });
+  /** maps client (CSS px) coords -> VIEW (screen) coords; set by main. */
+  private mapToView: (cx: number, cy: number) => Vec2 = (cx, cy) => ({ x: cx, y: cy });
 
   attach(canvas: HTMLCanvasElement, mapper: (cx: number, cy: number) => Vec2): void {
-    this.mapToInternal = mapper;
+    this.mapToView = mapper;
     const down = (e: PointerEvent) => this.onDown(e);
     const move = (e: PointerEvent) => this.onMove(e);
     const up = (e: PointerEvent) => this.onUp(e);
@@ -54,7 +54,7 @@ export class InputManager implements HumanInputSource {
 
   private onDown(e: PointerEvent): void {
     e.preventDefault();
-    const pos = this.mapToInternal(e.clientX, e.clientY);
+    const pos = this.mapToView(e.clientX, e.clientY);
     const id = e.pointerId;
     if (this.context === 'throw') {
       this.drag.start(id, pos);
@@ -66,7 +66,7 @@ export class InputManager implements HumanInputSource {
 
   private onMove(e: PointerEvent): void {
     e.preventDefault();
-    const pos = this.mapToInternal(e.clientX, e.clientY);
+    const pos = this.mapToView(e.clientX, e.clientY);
     const id = e.pointerId;
     this.drag.move(id, pos);
     this.joystick.move(id, pos);

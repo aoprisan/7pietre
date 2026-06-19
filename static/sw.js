@@ -1,5 +1,5 @@
 // 7 Pietre service worker — offline-first app shell. Bump CACHE on every release.
-const CACHE = '7pietre-v1';
+const CACHE = '7pietre-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -13,9 +13,19 @@ const ASSETS = [
   './icons/apple-touch-icon.png',
 ];
 
+// Neighborhood backdrop art is optional (procedural fallback if missing), so cache
+// it best-effort rather than failing the whole install when a file isn't present.
+const OPTIONAL = [
+  './art/dusk-courtyard.webp',
+  './art/noon-courtyard.webp',
+];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(async (cache) => {
+      await cache.addAll(ASSETS);
+      await Promise.all(OPTIONAL.map((u) => cache.add(u).catch(() => {})));
+    }).then(() => self.skipWaiting())
   );
 });
 
