@@ -21,6 +21,9 @@ function copyStatic() {
     const src = join(root, 'static', f);
     if (existsSync(src)) cpSync(src, join(dist, f));
   }
+  // neighborhood backdrop art (static/art/*.webp) -> dist/art/
+  const art = join(root, 'static', 'art');
+  if (existsSync(art)) cpSync(art, join(dist, 'art'), { recursive: true });
 }
 function genIcons() {
   execFileSync(process.execPath, [join(root, 'tools', 'gen-icons.mjs'), join(dist, 'icons')], {

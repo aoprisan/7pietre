@@ -49,8 +49,35 @@ const DUSK_COURTYARD: Palette = {
   ink: '#f3e9d8',
 };
 
+// Bright summer mid-day courtyard: blue sky, sun-bleached asphalt, green chestnuts.
+const NOON_COURTYARD: Palette = {
+  skyTop: '#6fb8e6',
+  skyDusk: '#cfeaf6',
+  building: '#cdbfa6',
+  buildingShade: '#a99a82',
+  balcony: '#b6a78c',
+  window: '#5b6b74',
+  windowLit: '#dff0f6',
+  asphalt: '#a7a092',
+  asphalt2: '#9b9486',
+  chalk: '#fbf6e8',
+  rack: '#6f5f4c',
+  carBody: '#7fb6d6',
+  carShade: '#5e93b2',
+  carGlass: '#33424a',
+  stackBase: '#c98a5a',
+  teamA: '#e0552f',
+  teamAShade: '#9e3417',
+  teamB: '#2f8f6b',
+  teamBShade: '#1d6147',
+  ballColor: '#ef6a2a',
+  shadow: 'rgba(20,18,10,0.26)',
+  ink: '#2a2620',
+};
+
 const SKINS: Record<string, Palette> = {
   'dusk-courtyard': DUSK_COURTYARD,
+  'noon-courtyard': NOON_COURTYARD,
 };
 
 export function paletteForSkin(skin: string): Palette {

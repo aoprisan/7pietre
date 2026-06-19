@@ -7,6 +7,8 @@ import type { Palette } from './palette';
 export class Theme {
   readonly canvas: HTMLCanvasElement;
   private built = '';
+  private images: Record<string, HTMLImageElement> = {};
+  private requested = new Set<string>();
 
   constructor() {
     this.canvas = document.createElement('canvas');
@@ -15,10 +17,35 @@ export class Theme {
   }
 
   ensure(pal: Palette, key: string): void {
-    if (this.built === key) return;
-    this.built = key;
+    this.requestImage(key);
+    const img = this.images[key];
+    const ready = !!img && img.complete && img.naturalWidth > 0;
+    // re-bake when the skin changes OR when its backdrop image finishes loading
+    const builtKey = key + (ready ? ':img' : ':proc');
+    if (this.built === builtKey) return;
+    this.built = builtKey;
     const ctx = this.canvas.getContext('2d')!;
-    this.paint(ctx, pal);
+    if (ready) this.paintImage(ctx, pal, img);
+    else this.paint(ctx, pal);
+  }
+
+  /** Kick off the per-skin backdrop image load once. Failure -> procedural fallback. */
+  private requestImage(skin: string): void {
+    if (this.requested.has(skin)) return;
+    // No Image constructor (e.g. the Node render-smoke harness): stay procedural.
+    if (typeof Image === 'undefined') return;
+    this.requested.add(skin);
+    const img = new Image();
+    img.onload = () => { this.images[skin] = img; this.built = ''; /* force re-bake */ };
+    img.onerror = () => { /* no art for this skin: keep procedural backdrop */ };
+    img.src = `./art/${skin}.webp`;
+  }
+
+  /** Real AI-generated backdrop (covers the whole world) + chalk overlay on top. */
+  private paintImage(ctx: CanvasRenderingContext2D, pal: Palette, img: HTMLImageElement): void {
+    ctx.clearRect(0, 0, FIELD.w, FIELD.h);
+    ctx.drawImage(img, 0, 0, FIELD.w, FIELD.h);
+    this.drawChalk(ctx, pal);
   }
 
   private paint(ctx: CanvasRenderingContext2D, pal: Palette): void {
@@ -26,7 +53,7 @@ export class Theme {
     ctx.clearRect(0, 0, W, H);
 
     // --- dusk sky behind the block ---
-    const horizon = 250;
+    const horizon = BASE.y;
     const sky = ctx.createLinearGradient(0, 0, 0, horizon);
     sky.addColorStop(0, pal.skyTop);
     sky.addColorStop(1, pal.skyDusk);
@@ -73,25 +100,8 @@ export class Theme {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y + (rnd() - 0.5) * 30); ctx.stroke();
     }
 
-    // --- chalk court markings ---
-    ctx.strokeStyle = pal.chalk;
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(22, horizon + 8, W - 44, H - horizon - 70);
-    // base circle (the castle's spot)
-    ctx.beginPath(); ctx.arc(BASE.x, BASE.y, 54, 0, Math.PI * 2); ctx.stroke();
-    ctx.globalAlpha = 0.32;
-    ctx.beginPath(); ctx.arc(BASE.x, BASE.y, 40, 0, Math.PI * 2); ctx.stroke();
-    // throw line (dashed)
-    ctx.globalAlpha = 0.55;
-    ctx.setLineDash([16, 12]);
-    ctx.beginPath(); ctx.moveTo(28, THROW_LINE_Y); ctx.lineTo(W - 28, THROW_LINE_Y); ctx.stroke();
-    ctx.setLineDash([]);
-    // hopscotch near the bottom corner
-    ctx.globalAlpha = 0.3;
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 4; i++) ctx.strokeRect(60, H - 130 + i * 22, 40, 22);
-    ctx.globalAlpha = 1;
+    // --- chalk court markings (kept procedural so they stay aligned with gameplay) ---
+    this.drawChalk(ctx, pal);
 
     // --- carpet-beating rack (bătătorul) on the left ---
     this.drawRack(ctx, pal, 70, horizon + 70);
@@ -112,6 +122,30 @@ export class Theme {
     vig.addColorStop(1, 'rgba(0,0,0,0.34)');
     ctx.fillStyle = vig;
     ctx.fillRect(0, 0, W, H);
+  }
+
+  /** Chalk court border, base circle, throw line and hopscotch — drawn on top of
+   * either backdrop so they stay pixel-aligned with BASE / THROW_LINE_Y. */
+  private drawChalk(ctx: CanvasRenderingContext2D, pal: Palette): void {
+    const W = FIELD.w, H = FIELD.h, horizon = BASE.y;
+    ctx.strokeStyle = pal.chalk;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(22, horizon + 8, W - 44, H - horizon - 70);
+    // base circle (the castle's spot)
+    ctx.beginPath(); ctx.arc(BASE.x, BASE.y, 54, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 0.32;
+    ctx.beginPath(); ctx.arc(BASE.x, BASE.y, 40, 0, Math.PI * 2); ctx.stroke();
+    // throw line (dashed)
+    ctx.globalAlpha = 0.55;
+    ctx.setLineDash([16, 12]);
+    ctx.beginPath(); ctx.moveTo(28, THROW_LINE_Y); ctx.lineTo(W - 28, THROW_LINE_Y); ctx.stroke();
+    ctx.setLineDash([]);
+    // hopscotch near the bottom corner
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) ctx.strokeRect(60, H - 130 + i * 22, 40, 22);
+    ctx.globalAlpha = 1;
   }
 
   private drawRack(ctx: CanvasRenderingContext2D, pal: Palette, x: number, y: number): void {

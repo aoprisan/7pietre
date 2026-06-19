@@ -3,7 +3,7 @@
 // the input overlay drawing. Interpolates entity positions between sim ticks.
 import {
   BASE, FIELD, GRAVITY, KNEE_HEIGHT, STACK_HEIGHT, THROW_LINE_Y,
-  THROW_MAX_SPEED, THROW_MAX_VZ,
+  THROW_MAX_SPEED, THROW_MAX_VZ, VIEW,
 } from '../sim/config';
 import type { GameState, PlayerState } from '../sim/types';
 import { clamp, len, norm, type Vec2 } from '../sim/vec';
@@ -51,12 +51,21 @@ export class Renderer {
       this.canvas.width = w;
       this.canvas.height = h;
     }
-    this.scale = Math.min(w / FIELD.w, h / FIELD.h);
-    this.offX = (w - FIELD.w * this.scale) / 2;
-    this.offY = (h - FIELD.h * this.scale) / 2;
+    // fixed zoom: fit the VIEW window (not the whole field) into the device.
+    this.scale = Math.min(w / VIEW.w, h / VIEW.h);
+    this.offX = (w - VIEW.w * this.scale) / 2;
+    this.offY = (h - VIEW.h * this.scale) / 2;
   }
 
-  toInternal(clientX: number, clientY: number): Vec2 {
+  /** Snap the camera straight to its target (round/match start). */
+  snapCamera(): void {
+    this.camera.snapToTarget();
+  }
+
+  // Device px -> VIEW (screen) coords. On-screen gesture inputs (joystick, action
+  // button, drag-aim) are device-anchored, so they map through VIEW space — NOT the
+  // moving world transform.
+  toView(clientX: number, clientY: number): Vec2 {
     const rect = this.canvas.getBoundingClientRect();
     const dx = (clientX - rect.left) * this.dpr;
     const dy = (clientY - rect.top) * this.dpr;
@@ -65,18 +74,35 @@ export class Renderer {
 
   render(state: GameState, prev: InterpSnapshot | null, alpha: number, input: InputManager, dt: number): void {
     this.theme.ensure(this.pal, this.skin);
+
+    // Aim the camera: follow the human during the scramble, otherwise frame the
+    // castle (siege/round-end and the menu backdrop). Uses the SAME interpolated
+    // human position as the sprite so camera and player move in lockstep.
+    let fx = BASE.x, fy = BASE.y;
+    if (state.phase === 'scramble') {
+      const human = state.players.find((p) => p.id === this.humanId);
+      if (human) { fx = this.ix(human, prev, alpha); fy = this.py(human, prev, alpha); }
+    }
+    this.camera.setTarget(fx, fy);
     this.camera.update(dt);
+    const camOffX = VIEW.w / 2 - this.camera.posX;
+    const camOffY = VIEW.h / 2 - this.camera.posY;
+
     const ctx = this.ctx;
 
     // letterbox bars
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#0d0a0d';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    // scene transform (+ camera shake)
-    ctx.setTransform(this.scale, 0, 0, this.scale, this.offX + this.camera.offsetX, this.offY + this.camera.offsetY);
-    // clip to field so shake doesn't reveal seams
+    // scene transform: world pan (px = world * scale) + camera shake (device px)
+    ctx.setTransform(
+      this.scale, 0, 0, this.scale,
+      this.offX + camOffX * this.scale + this.camera.offsetX,
+      this.offY + camOffY * this.scale + this.camera.offsetY,
+    );
+    // clip to the visible VIEW window (world coords) so shake can't reveal letterbox
     ctx.beginPath();
-    ctx.rect(0, 0, FIELD.w, FIELD.h);
+    ctx.rect(this.camera.posX - VIEW.w / 2, this.camera.posY - VIEW.h / 2, VIEW.w, VIEW.h);
     ctx.save();
     ctx.clip();
 
