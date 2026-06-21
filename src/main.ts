@@ -22,7 +22,12 @@ import { Results } from './ui/results';
 
 const HUMAN_ID = 0;
 const WINS_KEY = '7pietre.wins';
-const DEBUG = new URLSearchParams(location.search).has('debug');
+// Debug overlay toggle. Visiting `?debug` turns it on and remembers it (handy on
+// mobile where retyping the query each time is painful); `?debug=off` clears it.
+const DEBUG_KEY = '7pietre.debug';
+const debugParam = new URLSearchParams(location.search).get('debug');
+if (debugParam !== null) localStorage.setItem(DEBUG_KEY, debugParam === 'off' ? '0' : '1');
+const DEBUG = localStorage.getItem(DEBUG_KEY) === '1';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const uiRoot = document.getElementById('ui-root') as HTMLElement;
