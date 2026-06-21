@@ -1,3 +1,4 @@
+import type { Obstacle } from './config';
 import type { Vec2 } from './vec';
 
 export type Team = 'A' | 'B';
@@ -99,6 +100,8 @@ export interface GameState {
   field: { w: number; h: number };
   basePos: Vec2;
   throwLineY: number;
+  /** Static cover obstacles for the current skin (footprint AABB + z-height). */
+  obstacles: Obstacle[];
   players: PlayerState[];
   stones: StoneState[];
   ball: BallState;

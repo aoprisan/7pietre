@@ -22,6 +22,7 @@ import { Results } from './ui/results';
 
 const HUMAN_ID = 0;
 const WINS_KEY = '7pietre.wins';
+const DEBUG = new URLSearchParams(location.search).has('debug');
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const uiRoot = document.getElementById('ui-root') as HTMLElement;
@@ -31,9 +32,9 @@ const sfx = new Sfx();
 
 // Backdrop match so the courtyard shows behind the menu.
 let choice: MenuChoice | null = null;
-let state: GameState = createMatch(0x1234);
+let state: GameState = createMatch(0x1234, 'dusk-courtyard');
 let controllers: Controller[] = [];
-let renderer = new Renderer(canvas, paletteForSkin('dusk-courtyard'), 'dusk-courtyard', HUMAN_ID);
+let renderer = new Renderer(canvas, paletteForSkin('dusk-courtyard'), 'dusk-courtyard', HUMAN_ID, DEBUG);
 
 input.attach(canvas, (cx, cy) => renderer.toView(cx, cy));
 
@@ -75,7 +76,7 @@ function startMatch(c: MenuChoice): void {
   choice = c;
   sfx.resume();
   const seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
-  state = createMatch(seed);
+  state = createMatch(seed, c.neighborhood.skin);
   controllers = buildControllers(state, c);
   renderer.setPalette(paletteForSkin(c.neighborhood.skin), c.neighborhood.skin);
   renderer.resize();

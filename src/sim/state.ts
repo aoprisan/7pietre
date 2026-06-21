@@ -1,9 +1,10 @@
 // Match / round construction and (re)setup. Pure data factories — no DOM, no RNG
 // beyond the seeded sim stream.
 import {
-  BASE, FIELD, HUMAN_TEAM, MOVE_SPEED, PLAYER_RADIUS, ROUND_SECONDS,
+  BASE, FIELD, HUMAN_TEAM, MOVE_SPEED, obstaclesForSkin, PLAYER_RADIUS, ROUND_SECONDS,
   STONE_COUNT, THROW_LINE_Y,
 } from './config';
+import { pushOutOfObstacles } from './geom';
 import { rollRange } from './rng';
 import type { GameState, PlayerState, Role, StoneState, Team } from './types';
 import { v } from './vec';
@@ -32,7 +33,7 @@ function makeStone(id: number): StoneState {
 }
 
 /** Create a fresh match. Human is player 0 on team A; bots fill the rest. */
-export function createMatch(seed: number): GameState {
+export function createMatch(seed: number, skin = 'dusk-courtyard'): GameState {
   const players: PlayerState[] = [
     makePlayer(0, 'A', true),
     makePlayer(1, 'A', false),
@@ -51,6 +52,7 @@ export function createMatch(seed: number): GameState {
     field: { ...FIELD },
     basePos: v(BASE.x, BASE.y),
     throwLineY: THROW_LINE_Y,
+    obstacles: obstaclesForSkin(skin),
     players,
     stones,
     ball: { pos: v(BASE.x, THROW_LINE_Y + 40), vel: v(0, 0), z: 0, vz: 0, inFlight: false, heldBy: null, thrownBy: null, restTimer: 0 },
@@ -102,6 +104,12 @@ export function setupRound(state: GameState): void {
   const defXs = [165, 270, 375];
   defenders.forEach((p, i) => { p.pos = v(defXs[i % 3], BASE.y + 150); });
 
+  // Nudge anyone who spawned inside a cover footprint back onto open ground.
+  for (const p of state.players) {
+    const f = pushOutOfObstacles(p.pos.x, p.pos.y, p.radius, state.obstacles);
+    p.pos = v(f.x, f.y);
+  }
+
   // Reset stones into the standing stack.
   for (const s of state.stones) {
     s.status = 'stacked';
@@ -137,6 +145,10 @@ export function scatterStones(state: GameState): void {
     let y = BASE.y + Math.sin(ang) * r * 0.85; // slightly squashed spread
     x = Math.max(40, Math.min(FIELD.w - 40, x));
     y = Math.max(80, Math.min(THROW_LINE_Y - 10, y));
+    // Keep stones off obstacle footprints so a runner can actually reach them
+    // (a player can't enter the footprint to pick one up). Pad by PLAYER_RADIUS.
+    const clear = pushOutOfObstacles(x, y, PLAYER_RADIUS, state.obstacles);
+    x = clear.x; y = clear.y;
     s.status = 'fallen';
     s.carriedBy = null;
     s.spin = rollRange(state, -1, 1);
