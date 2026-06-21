@@ -1,5 +1,5 @@
 // 7 Pietre service worker — offline-first app shell. Bump CACHE on every release.
-const CACHE = '7pietre-v3';
+const CACHE = '7pietre-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -18,6 +18,18 @@ const ASSETS = [
 const OPTIONAL = [
   './art/dusk-courtyard.webp',
   './art/noon-courtyard.webp',
+  // moving-object sprites (procedural fallback if missing)
+  './art/sprites/player-a.webp',
+  './art/sprites/player-b.webp',
+  './art/sprites/ball.webp',
+  './art/sprites/stone-0.webp',
+  './art/sprites/stone-1.webp',
+  './art/sprites/stone-2.webp',
+  './art/sprites/stone-3.webp',
+  './art/sprites/stone-4.webp',
+  './art/sprites/stone-5.webp',
+  './art/sprites/stone-6.webp',
+  './art/sprites/stone-7.webp',
 ];
 
 self.addEventListener('install', (event) => {

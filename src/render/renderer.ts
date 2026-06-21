@@ -12,6 +12,7 @@ import type { InputManager } from '../input/inputManager';
 import { Camera } from './camera';
 import type { Palette } from './palette';
 import { STONE_COLORS } from './palette';
+import { Sprites } from './sprites';
 import { Theme } from './theme';
 
 export interface InterpSnapshot {
@@ -25,6 +26,7 @@ export class Renderer {
   readonly camera = new Camera();
   private ctx: CanvasRenderingContext2D;
   private theme = new Theme();
+  private sprites = new Sprites();
   private dpr = 1;
   private scale = 1;
   private offX = 0;
@@ -189,6 +191,12 @@ export class Renderer {
       const w = 52 - i * 5.2;
       const h = 13;
       y -= h + 1.5;
+      const img = this.sprites.stone(i);
+      if (img) {
+        // sprite is a fat oval; let it overflow the band so stones overlap nicely
+        this.drawSprite(img, cx, y + h / 2, w, w);
+        continue;
+      }
       ctx.fillStyle = STONE_COLORS[i % STONE_COLORS.length];
       this.roundRect(cx - w / 2, y, w, h, 4);
       ctx.fill();
@@ -206,6 +214,11 @@ export class Renderer {
       if (s.status !== 'fallen') continue;
       ctx.fillStyle = this.pal.shadow;
       ctx.beginPath(); ctx.ellipse(s.pos.x, s.pos.y + 5, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
+      const img = this.sprites.stone(s.id);
+      if (img) {
+        this.drawSprite(img, s.pos.x, s.pos.y, 30, 30, false, s.spin);
+        continue;
+      }
       ctx.save();
       ctx.translate(s.pos.x, s.pos.y);
       ctx.rotate(s.spin);
@@ -250,30 +263,51 @@ export class Renderer {
       ctx.beginPath(); ctx.ellipse(x, y + 10, 15, 6, 0, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // legs hint
-    ctx.fillStyle = shadeCol;
-    ctx.fillRect(x - 8, y + 4, 6, 12);
-    ctx.fillRect(x + 2, y + 4, 6, 12);
+    const sprite = this.sprites.player(p.team);
+    if (sprite) {
+      // bottom-anchored at the feet (y+16); flip to face horizontal movement.
+      // Team B's art is a more top-down (foreshortened) view, so it's drawn in a
+      // wider box to read at the same size as Team A's taller 3/4 view.
+      const boxW = p.team === 'A' ? 60 : 84, boxH = 64;
+      const s = Math.min(boxW / sprite.naturalWidth, boxH / sprite.naturalHeight);
+      this.drawSprite(sprite, x, y + 16 - sprite.naturalHeight * s / 2, boxW, boxH, fx < -0.15);
+      if (p.hitFlash > 0) {
+        ctx.globalAlpha = Math.min(1, p.hitFlash);
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.beginPath(); ctx.ellipse(x, y - 6, 16, 22, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      // legs hint
+      ctx.fillStyle = shadeCol;
+      ctx.fillRect(x - 8, y + 4, 6, 12);
+      ctx.fillRect(x + 2, y + 4, 6, 12);
 
-    // body
-    ctx.fillStyle = p.hitFlash > 0 ? '#ffffff' : teamCol;
-    this.roundRect(x - 13, y - 16, 26, 24, 8); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.16)';
-    this.roundRect(x - 13, y - 16, 26, 9, 8); ctx.fill();
+      // body
+      ctx.fillStyle = p.hitFlash > 0 ? '#ffffff' : teamCol;
+      this.roundRect(x - 13, y - 16, 26, 24, 8); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+      this.roundRect(x - 13, y - 16, 26, 9, 8); ctx.fill();
 
-    // head
-    ctx.fillStyle = '#e7c39a';
-    ctx.beginPath(); ctx.arc(x, y - 24, 9, 0, Math.PI * 2); ctx.fill();
-    // facing nub
-    ctx.fillStyle = shadeCol;
-    ctx.beginPath(); ctx.arc(x + fx * 7, y - 24 + fy * 4, 3.5, 0, Math.PI * 2); ctx.fill();
+      // head
+      ctx.fillStyle = '#e7c39a';
+      ctx.beginPath(); ctx.arc(x, y - 24, 9, 0, Math.PI * 2); ctx.fill();
+      // facing nub
+      ctx.fillStyle = shadeCol;
+      ctx.beginPath(); ctx.arc(x + fx * 7, y - 24 + fy * 4, 3.5, 0, Math.PI * 2); ctx.fill();
+    }
 
     // carried stone
     if (p.carryingStoneId != null) {
-      ctx.fillStyle = STONE_COLORS[p.carryingStoneId % STONE_COLORS.length];
-      this.roundRect(x - 11, y - 40, 22, 12, 4); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.14)';
-      this.roundRect(x - 11, y - 40, 22, 5, 4); ctx.fill();
+      const stoneImg = this.sprites.stone(p.carryingStoneId);
+      if (stoneImg) {
+        this.drawSprite(stoneImg, x, y - 34, 26, 26);
+      } else {
+        ctx.fillStyle = STONE_COLORS[p.carryingStoneId % STONE_COLORS.length];
+        this.roundRect(x - 11, y - 40, 22, 12, 4); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.14)';
+        this.roundRect(x - 11, y - 40, 22, 5, 4); ctx.fill();
+      }
     }
 
     // "YOU" marker
@@ -309,10 +343,15 @@ export class Renderer {
     ctx.fillStyle = `rgba(20,12,10,${0.3 * sh})`;
     ctx.beginPath(); ctx.ellipse(bx, by + 4, 9 * sh, 4 * sh, 0, 0, Math.PI * 2); ctx.fill();
     // ball
-    ctx.fillStyle = this.pal.ballColor;
-    ctx.beginPath(); ctx.arc(bx, screenY, 9, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,220,180,0.5)';
-    ctx.beginPath(); ctx.arc(bx - 3, screenY - 3, 3.4, 0, Math.PI * 2); ctx.fill();
+    const img = this.sprites.ball();
+    if (img) {
+      this.drawSprite(img, bx, screenY, 22, 22);
+    } else {
+      ctx.fillStyle = this.pal.ballColor;
+      ctx.beginPath(); ctx.arc(bx, screenY, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,220,180,0.5)';
+      ctx.beginPath(); ctx.arc(bx - 3, screenY - 3, 3.4, 0, Math.PI * 2); ctx.fill();
+    }
     // low/dangerous indicator when in flight near the ground
     if (b.inFlight && b.z < KNEE_HEIGHT) {
       ctx.strokeStyle = 'rgba(232,90,58,0.7)';
@@ -400,6 +439,20 @@ export class Renderer {
     ctx.fillText(a.label || 'A', a.center.x, a.center.y);
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
+  }
+
+  /** Draw a sprite fit into a w×h box, anchored at (cx, cy) = box center,
+   * preserving aspect ratio. Optional horizontal flip + rotation about the anchor. */
+  private drawSprite(img: HTMLImageElement, cx: number, cy: number, boxW: number, boxH: number, flipX = false, rot = 0): void {
+    const ctx = this.ctx;
+    const s = Math.min(boxW / img.naturalWidth, boxH / img.naturalHeight);
+    const w = img.naturalWidth * s, h = img.naturalHeight * s;
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (rot) ctx.rotate(rot);
+    if (flipX) ctx.scale(-1, 1);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
   }
 
   // --- utils ---
