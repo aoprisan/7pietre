@@ -106,6 +106,9 @@ export interface Obstacle {
   h: number;
   z: number;
   label: string;
+  /** Whether a low ball is blocked by it (default true). The building sets this
+   * false: it stops players but lets throws reach the stack at its foot. */
+  ball?: boolean;
 }
 
 // Per-skin obstacle footprints, authored against the backdrop art. Keep these
@@ -129,6 +132,20 @@ const OBSTACLES: Record<string, Obstacle[]> = {
   ],
 };
 
+// The apartment bloc occupies the whole top band above the horizon (BASE.y).
+// Players can't walk onto it, but it does NOT block the ball — the stack sits at
+// its foot (y=BASE.y), so a ball-blocking building would stop every throw before
+// it could topple the castle. Shared across skins.
+//
+// We leave a thin walkable apron of courtyard at the very foot (BUILDING_APRON):
+// the castle is flush against the wall, so a full-height wall would make the base
+// a 1-D chokepoint that attackers can't fan around — rebuilds collapse. The apron
+// keeps ~89% of the bloc off-limits while letting runners reach the base.
+const BUILDING_APRON = 40;
+const BUILDING: Obstacle = {
+  x: 0, y: 0, w: FIELD.w, h: BASE.y - BUILDING_APRON, z: 600, label: 'building', ball: false,
+};
+
 export function obstaclesForSkin(skin: string): Obstacle[] {
-  return OBSTACLES[skin] ?? [];
+  return [BUILDING, ...(OBSTACLES[skin] ?? [])];
 }

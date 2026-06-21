@@ -144,7 +144,9 @@ export function scatterStones(state: GameState): void {
     let x = BASE.x + Math.cos(ang) * r;
     let y = BASE.y + Math.sin(ang) * r * 0.85; // slightly squashed spread
     x = Math.max(40, Math.min(FIELD.w - 40, x));
-    y = Math.max(80, Math.min(THROW_LINE_Y - 10, y));
+    // Stay in the courtyard (below the building foot at BASE.y) so stones never
+    // land on the bloc where no one can reach them.
+    y = Math.max(BASE.y + 20, Math.min(THROW_LINE_Y - 10, y));
     // Keep stones off obstacle footprints so a runner can actually reach them
     // (a player can't enter the footprint to pick one up). Pad by PLAYER_RADIUS.
     const clear = pushOutOfObstacles(x, y, PLAYER_RADIUS, state.obstacles);

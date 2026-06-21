@@ -75,6 +75,7 @@ function stepBall(state: GameState, dt: number): void {
     // Cover: a low ball that enters an obstacle footprint is stopped (drops there),
     // so it can't reach a player hidden behind it. A high ball clears the top.
     for (const o of state.obstacles) {
+      if (o.ball === false) continue; // e.g. the building — players only, ball passes
       if (b.z >= o.z) continue;
       const hit = segmentHitsAabb(px, py, b.pos.x, b.pos.y, o, BALL_RADIUS);
       if (hit) {
