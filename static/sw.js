@@ -1,5 +1,5 @@
 // 7 Pietre service worker — offline-first app shell. Bump CACHE on every release.
-const CACHE = '7pietre-v2';
+const CACHE = '7pietre-v3';
 const ASSETS = [
   './',
   './index.html',

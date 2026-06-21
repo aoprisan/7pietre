@@ -134,21 +134,26 @@ export class Renderer {
   private drawDebug(state: GameState): void {
     const ctx = this.ctx;
     ctx.save();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255,60,60,0.9)'; // horizon @ BASE.y
+    ctx.lineWidth = 3;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.strokeStyle = 'rgba(255,40,40,0.95)'; // horizon @ BASE.y
+    ctx.fillStyle = 'rgba(255,40,40,0.95)';
     ctx.beginPath(); ctx.moveTo(0, BASE.y); ctx.lineTo(FIELD.w, BASE.y); ctx.stroke();
-    ctx.strokeStyle = 'rgba(60,220,255,0.9)'; // throw line
+    ctx.fillText(`horizon BASE.y=${BASE.y}`, 6, BASE.y - 3);
+    ctx.strokeStyle = 'rgba(40,220,255,0.95)'; // throw line
+    ctx.fillStyle = 'rgba(40,220,255,0.95)';
     ctx.beginPath(); ctx.moveTo(0, THROW_LINE_Y); ctx.lineTo(FIELD.w, THROW_LINE_Y); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; // field border
+    ctx.fillText(`throw y=${THROW_LINE_Y}`, 6, THROW_LINE_Y - 3);
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; // field border
     ctx.strokeRect(0, 0, FIELD.w, FIELD.h);
     ctx.strokeStyle = 'rgba(255,210,80,0.95)'; // obstacles
     ctx.fillStyle = 'rgba(255,210,80,0.95)';
-    ctx.font = '11px monospace';
-    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     for (const o of state.obstacles) {
       ctx.strokeRect(o.x, o.y, o.w, o.h);
-      ctx.fillText(`${o.label} z${o.z}`, o.x + 2, o.y + 2);
+      ctx.fillText(`${o.label} z${o.z}`, o.x + 3, o.y + 3);
     }
     ctx.restore();
   }
