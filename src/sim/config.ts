@@ -94,3 +94,41 @@ export const NEIGHBORHOODS: Neighborhood[] = [
     skin: 'noon-courtyard',
   },
 ];
+
+/** A static piece of courtyard cover (the car, rug-rack, bins, trees). `x,y,w,h`
+ * is the ground footprint (AABB, world units); `z` is the height a thrown ball
+ * must clear to pass over it. Players can't walk through it; a low ball is blocked
+ * by it, so a player hidden behind one can't be tagged. */
+export interface Obstacle {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z: number;
+  label: string;
+}
+
+// Per-skin obstacle footprints, authored against the backdrop art. Keep these
+// clear of the base circle (BASE, r≈54) and the throw line (y=810). Tune visually
+// with the `?debug` overlay (which draws each box + its z-height).
+// IMPORTANT: keep obstacles off the base circle (BASE, r≈54) and out of the
+// central rebuild lane (x≈230–310, y 360→810) — an obstacle there blocks attackers
+// from carrying stones back to the base and makes the round unwinnable for them.
+const OBSTACLES: Record<string, Obstacle[]> = {
+  'noon-courtyard': [
+    { x: 368, y: 380, w: 110, h: 95, z: 42, label: 'car' },
+    { x: 110, y: 362, w: 85, h: 46, z: 50, label: 'bins' },
+    { x: 20, y: 780, w: 95, h: 60, z: 90, label: 'rack' },
+    { x: 0, y: 400, w: 85, h: 250, z: 130, label: 'trees' },
+  ],
+  'dusk-courtyard': [
+    { x: 348, y: 362, w: 130, h: 98, z: 42, label: 'car' },
+    { x: 20, y: 820, w: 85, h: 150, z: 95, label: 'rug-rack' },
+    { x: 110, y: 362, w: 85, h: 46, z: 50, label: 'bins' },
+    { x: 0, y: 400, w: 85, h: 250, z: 130, label: 'trees' },
+  ],
+};
+
+export function obstaclesForSkin(skin: string): Obstacle[] {
+  return OBSTACLES[skin] ?? [];
+}

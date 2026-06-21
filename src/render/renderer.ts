@@ -31,7 +31,7 @@ export class Renderer {
   private offY = 0;
   private humanId: number;
 
-  constructor(private canvas: HTMLCanvasElement, private pal: Palette, private skin: string, humanId: number) {
+  constructor(private canvas: HTMLCanvasElement, private pal: Palette, private skin: string, humanId: number, private debug = false) {
     this.ctx = canvas.getContext('2d', { alpha: false })!;
     this.humanId = humanId;
     this.resize();
@@ -118,12 +118,39 @@ export class Renderer {
 
     this.drawThrowPreview(state, prev, alpha, input);
 
+    if (this.debug) this.drawDebug(state);
+
     ctx.restore();
 
     // input overlay (not clipped/shaken)
     ctx.setTransform(this.scale, 0, 0, this.scale, this.offX, this.offY);
     this.drawJoystick(input);
     this.drawActionButton(input);
+  }
+
+  /** `?debug` overlay (world space, so it pans/shakes with the field): the horizon
+   * line at BASE.y, the throw line, the court border, and each cover obstacle's
+   * footprint + z-height. Doubles as the tool for tuning obstacle rects to the art. */
+  private drawDebug(state: GameState): void {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,60,60,0.9)'; // horizon @ BASE.y
+    ctx.beginPath(); ctx.moveTo(0, BASE.y); ctx.lineTo(FIELD.w, BASE.y); ctx.stroke();
+    ctx.strokeStyle = 'rgba(60,220,255,0.9)'; // throw line
+    ctx.beginPath(); ctx.moveTo(0, THROW_LINE_Y); ctx.lineTo(FIELD.w, THROW_LINE_Y); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; // field border
+    ctx.strokeRect(0, 0, FIELD.w, FIELD.h);
+    ctx.strokeStyle = 'rgba(255,210,80,0.95)'; // obstacles
+    ctx.fillStyle = 'rgba(255,210,80,0.95)';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    for (const o of state.obstacles) {
+      ctx.strokeRect(o.x, o.y, o.w, o.h);
+      ctx.fillText(`${o.label} z${o.z}`, o.x + 2, o.y + 2);
+    }
+    ctx.restore();
   }
 
   // --- interpolation helpers ---

@@ -6,6 +6,7 @@ import {
   MATCH_WINS_NEEDED, MOVE_SPEED, PICKUP_RANGE, PLACE_RANGE, STACK_HEIGHT,
   STACK_RADIUS, STONE_COUNT, TAG_GRACE, THROW_MAX_SPEED, THROW_MAX_VZ, THROW_MIN_POWER,
 } from './config';
+import { resolveCircleAabb, segmentHitsAabb } from './geom';
 import { scatterStones } from './state';
 import type { GameState, Intent, PlayerState, StoneState, Team } from './types';
 import { NO_INTENT } from './types';
@@ -45,6 +46,11 @@ function applyMovement(state: GameState, p: PlayerState, intent: Intent, dt: num
     x: clamp(p.pos.x + p.vel.x * dt, 28, FIELD.w - 28),
     y: clamp(p.pos.y + p.vel.y * dt, 60, FIELD.h - 36),
   };
+  // Can't walk through cover — push out to the nearest edge (slides along).
+  for (const o of state.obstacles) {
+    const fixed = resolveCircleAabb(p.pos.x, p.pos.y, p.radius, o);
+    if (fixed) p.pos = fixed;
+  }
   if (len(m) > 0.05) p.facing = norm(m);
 
   if (p.carryingStoneId != null) {
@@ -61,10 +67,24 @@ function stepBall(state: GameState, dt: number): void {
   const b = state.ball;
   if (b.heldBy != null) return; // carried; positioned by the holder
   if (b.inFlight) {
+    const px = b.pos.x, py = b.pos.y; // pre-step position for the swept cover test
     b.pos.x += b.vel.x * dt;
     b.pos.y += b.vel.y * dt;
     b.z += b.vz * dt;
     b.vz -= GRAVITY * dt;
+    // Cover: a low ball that enters an obstacle footprint is stopped (drops there),
+    // so it can't reach a player hidden behind it. A high ball clears the top.
+    for (const o of state.obstacles) {
+      if (b.z >= o.z) continue;
+      const hit = segmentHitsAabb(px, py, b.pos.x, b.pos.y, o, BALL_RADIUS);
+      if (hit) {
+        b.pos.x = hit.x; b.pos.y = hit.y;
+        b.z = 0; b.vz = 0; b.vel = v(0, 0);
+        b.inFlight = false; b.thrownBy = null; b.restTimer = 0;
+        state.events.push({ kind: 'bounce', at: clone(b.pos) });
+        return;
+      }
+    }
     if (b.pos.x < 10 || b.pos.x > FIELD.w - 10) { b.pos.x = clamp(b.pos.x, 10, FIELD.w - 10); b.vel.x *= -0.4; }
     if (b.pos.y < 10 || b.pos.y > FIELD.h - 10) { b.pos.y = clamp(b.pos.y, 10, FIELD.h - 10); b.vel.y *= -0.4; }
     if (b.z <= 0) {
