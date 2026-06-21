@@ -4,11 +4,10 @@ Generation prompts and authoring specs for every image asset in the game. Two fa
 
 1. **[Neighborhood backdrops](#neighborhood-backdrop-art)** — the scrollable courtyard behind
    play. Loaded today by `src/render/theme.ts`.
-2. **[Game-object sprites](#game-object-sprites)** — players, the ball and the stones. The
-   renderer (`src/render/renderer.ts`) currently draws these procedurally from canvas shapes;
-   the prompts below define the target art direction so generated sprites can drop in later
-   behind the same draw calls. Sizes and colors are taken from the live render so art lines up
-   with hitboxes.
+2. **[Game-object sprites](#game-object-sprites)** — players, the ball and the stones. Loaded
+   by `src/render/sprites.ts` and drawn by `src/render/renderer.ts`, which falls back to the
+   procedural canvas shapes whenever a sprite file is missing (or in the Node smoke harness).
+   Sizes and colors are taken from the live render so art lines up with hitboxes.
 
 ---
 
@@ -61,9 +60,14 @@ incrementally.
 The players, ball and stones are drawn over the backdrop. They share its art direction —
 **flat oblique top-down, nostalgic faded-1990s palette, soft contact shadows** — but each
 sprite ships on its **own transparent background** so the engine can place, rotate and
-y-sort it. The renderer draws these procedurally today (`drawPlayer`, `drawBall`,
-`drawStack` / `drawFallenStones` in `src/render/renderer.ts`); these prompts are the spec for
-replacing those shapes with generated art.
+y-sort it (`drawPlayer`, `drawBall`, `drawStack` / `drawFallenStones`).
+
+> **Post-processing.** Gemini returns these on a baked checkerboard (RGB, no real alpha). To
+> turn that into a usable sprite: **flood-fill the background to transparent from the image
+> borders** (a color key would eat dark hair against the dark checker), crop to the alpha
+> bounding box, downscale, and re-export as `.webp` with alpha. The stones come back as one
+> sheet, so split it into individual stones by connected component. Drop the results in
+> `static/art/sprites/` as `player-a`, `player-b`, `ball`, and `stone-0…stone-7`.
 
 ## Authoring spec
 
@@ -81,9 +85,8 @@ replacing those shapes with generated art.
 - **No text, no UI, no chalk, no outline frame.** Markers like the `YOU` arrow, the low-hitbox
   ring, the carried-stone overlay and the tagged-out grey state are engine overlays — don't
   draw them.
-- **Naming (suggested):** drop files under `static/art/sprites/`, e.g.
-  `static/art/sprites/player-a.webp`. When wired in, add each path to `OPTIONAL` in
-  `static/sw.js` so it caches for offline play.
+- **Naming:** files live under `static/art/sprites/`, e.g. `static/art/sprites/player-a.webp`,
+  and each path is listed in `OPTIONAL` in `static/sw.js` so it caches for offline play.
 
 ## Prompts
 
