@@ -265,8 +265,10 @@ export class Renderer {
 
     const sprite = this.sprites.player(p.team);
     if (sprite) {
-      // bottom-anchored at the feet (y+16); flip to face horizontal movement
-      const boxW = 60, boxH = 64;
+      // bottom-anchored at the feet (y+16); flip to face horizontal movement.
+      // Team B's art is a more top-down (foreshortened) view, so it's drawn in a
+      // wider box to read at the same size as Team A's taller 3/4 view.
+      const boxW = p.team === 'A' ? 60 : 84, boxH = 64;
       const s = Math.min(boxW / sprite.naturalWidth, boxH / sprite.naturalHeight);
       this.drawSprite(sprite, x, y + 16 - sprite.naturalHeight * s / 2, boxW, boxH, fx < -0.15);
       if (p.hitFlash > 0) {
