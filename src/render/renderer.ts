@@ -110,6 +110,7 @@ export class Renderer {
 
     ctx.drawImage(this.theme.canvas, 0, 0);
 
+    this.drawObstacleProps(state);
     this.drawCastle(state);
     this.drawFallenStones(state);
 
@@ -128,6 +129,81 @@ export class Renderer {
     ctx.setTransform(this.scale, 0, 0, this.scale, this.offX, this.offY);
     this.drawJoystick(input);
     this.drawActionButton(input);
+  }
+
+  /** Foreground cover props for obstacles that carry a `prop` art type. Legacy
+   * cover (car/rack/bins/trees) is baked into the backdrop and skipped here. Drawn
+   * after the backdrop, before entities — matching how backdrop cover reads as a
+   * flat layer the players move over. `z` lifts the body up the screen (pseudo-3D). */
+  private drawObstacleProps(state: GameState): void {
+    const ctx = this.ctx;
+    for (const o of state.obstacles) {
+      if (!o.prop) continue;
+      const lift = o.z * Z_SCALE;          // how tall it stands on screen
+      const baseY = o.y + o.h;             // front edge (closest to camera)
+      const topY = baseY - o.h - lift;     // top of the standing body
+      // ground shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + o.w / 2, baseY - 2, o.w * 0.55, o.h * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      switch (o.prop) {
+        case 'dumpster': this.drawDumpster(o.x, topY, o.w, baseY - topY); break;
+        case 'crates': this.drawCrates(o.x, topY, o.w, baseY - topY); break;
+        case 'bench': this.drawBench(o.x, topY, o.w, baseY - topY); break;
+        case 'planter': this.drawPlanter(o.x, topY, o.w, baseY - topY); break;
+        case 'tires': this.drawTires(o.x + o.w / 2, baseY, o.w, lift); break;
+      }
+    }
+  }
+
+  private drawDumpster(x: number, y: number, w: number, h: number): void {
+    const ctx = this.ctx, lid = Math.max(6, h * 0.18);
+    ctx.fillStyle = '#3f6b48'; ctx.fillRect(x, y + lid, w, h - lid);          // body
+    ctx.fillStyle = '#2c4d33'; ctx.fillRect(x, y + h - 6, w, 6);              // shaded foot
+    ctx.fillStyle = '#4e8159'; ctx.fillRect(x - 3, y, w + 6, lid);            // lid overhang
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    for (let rx = x + 8; rx < x + w - 6; rx += 14) ctx.fillRect(rx, y + lid + 4, 3, h - lid - 12);
+  }
+
+  private drawCrates(x: number, y: number, w: number, h: number): void {
+    const ctx = this.ctx;
+    ctx.fillStyle = '#9c7240'; ctx.fillRect(x, y, w, h);                      // crate body
+    ctx.fillStyle = '#7d5a30'; ctx.fillRect(x, y + h - 5, w, 5);
+    ctx.strokeStyle = '#6f4f2a'; ctx.lineWidth = 3;
+    ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);                               // plank frame
+    ctx.beginPath(); ctx.moveTo(x + 2, y + 2); ctx.lineTo(x + w - 2, y + h - 2); // X brace
+    ctx.moveTo(x + w - 2, y + 2); ctx.lineTo(x + 2, y + h - 2); ctx.stroke();
+  }
+
+  private drawBench(x: number, y: number, w: number, h: number): void {
+    const ctx = this.ctx, seat = Math.max(6, h * 0.32);
+    ctx.fillStyle = '#7a5236';                                               // legs
+    ctx.fillRect(x + 6, y + seat, 6, h - seat);
+    ctx.fillRect(x + w - 12, y + seat, 6, h - seat);
+    ctx.fillStyle = '#9a6c45'; ctx.fillRect(x, y, w, seat);                   // seat plank
+    ctx.fillStyle = '#7d5733'; ctx.fillRect(x, y + seat - 3, w, 3);
+  }
+
+  private drawPlanter(x: number, y: number, w: number, h: number): void {
+    const ctx = this.ctx, box = Math.max(10, h * 0.42);
+    ctx.fillStyle = '#4e7a3f';                                               // shrub
+    ctx.beginPath(); ctx.ellipse(x + w / 2, y + (h - box) * 0.5, w * 0.5, (h - box) * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3c6231';
+    ctx.beginPath(); ctx.ellipse(x + w * 0.34, y + (h - box) * 0.55, w * 0.24, (h - box) * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#9a9389'; ctx.fillRect(x, y + h - box, w, box);          // concrete box
+    ctx.fillStyle = '#7c766d'; ctx.fillRect(x, y + h - 6, w, 6);
+  }
+
+  private drawTires(cx: number, baseY: number, w: number, lift: number): void {
+    const ctx = this.ctx, rings = 3, rw = w * 0.5, rh = Math.max(7, lift / rings * 0.9);
+    for (let i = 0; i < rings; i++) {
+      const cy = baseY - 4 - i * (lift / rings);
+      ctx.fillStyle = i % 2 ? '#26241f' : '#1c1a16';
+      ctx.beginPath(); ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3a362f';
+      ctx.beginPath(); ctx.ellipse(cx, cy, rw * 0.5, rh * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    }
   }
 
   /** `?debug` overlay (world space, so it pans/shakes with the field): the horizon

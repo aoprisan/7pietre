@@ -109,6 +109,10 @@ export interface Obstacle {
   /** Whether a low ball is blocked by it (default true). The building sets this
    * false: it stops players but lets throws reach the stack at its foot. */
   ball?: boolean;
+  /** Foreground prop art to draw for this cover (renderer switch). Legacy cover
+   * (car/rack/bins/trees) is baked into the backdrop and leaves this unset; new
+   * cover sets it so it's visible on top of any backdrop. */
+  prop?: 'dumpster' | 'crates' | 'bench' | 'planter' | 'tires';
 }
 
 // Per-skin obstacle footprints, authored against the backdrop art. Keep these
@@ -123,12 +127,20 @@ const OBSTACLES: Record<string, Obstacle[]> = {
     { x: 110, y: 362, w: 85, h: 46, z: 50, label: 'bins' },
     { x: 20, y: 780, w: 95, h: 60, z: 90, label: 'rack' },
     { x: 0, y: 400, w: 85, h: 250, z: 130, label: 'trees' },
+    // New mid-court cover (flanks only, off the central rebuild lane):
+    { x: 400, y: 540, w: 64, h: 64, z: 60, label: 'planter', prop: 'planter' },
+    { x: 150, y: 600, w: 70, h: 46, z: 40, label: 'tires', prop: 'tires' },
+    { x: 340, y: 700, w: 95, h: 34, z: 22, label: 'bench', prop: 'bench' },
   ],
   'dusk-courtyard': [
     { x: 348, y: 362, w: 130, h: 98, z: 42, label: 'car' },
     { x: 20, y: 820, w: 85, h: 150, z: 95, label: 'rug-rack' },
     { x: 110, y: 362, w: 85, h: 46, z: 50, label: 'bins' },
     { x: 0, y: 400, w: 85, h: 250, z: 130, label: 'trees' },
+    // New mid-court cover (flanks only, off the central rebuild lane):
+    { x: 410, y: 520, w: 70, h: 70, z: 70, label: 'dumpster', prop: 'dumpster' },
+    { x: 150, y: 600, w: 60, h: 50, z: 36, label: 'crates', prop: 'crates' },
+    { x: 340, y: 700, w: 95, h: 34, z: 22, label: 'bench', prop: 'bench' },
   ],
 };
 
